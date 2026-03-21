@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+app/__pycache__/
+vectorstore/
+data/*.pdf
+*.mp3
+*.wav
+.streamlit/
