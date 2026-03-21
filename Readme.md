@@ -401,6 +401,6 @@ If this project helped you or saved you time, a star on the repo goes a long way
 
 <br/>
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=7C3AED&height=150&section=footer&text=If%20not%20us%2C%20then%20who%3F&fontSize=26&fontColor=ffffff&fontAlignY=68&animation=twinkling" width="100%"/>
+<img src="https://capsule-render.vercel.app/api?type=waving&color=7C3AED&height=150&section=footer&fontAlignY=68&animation=twinkling" width="100%"/>
 
 </div>
