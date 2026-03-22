@@ -332,6 +332,146 @@ The user prompt passes the retrieved chunks as context then asks the question. T
 
 ---
 
+# Why Removing the Grounding Prompt Didn't Make My RAG Hallucinate — It Made It Vague
+
+I expected removing the grounding system prompt from my RAG pipeline to produce obvious hallucinations. Confident wrong numbers. Invented citations. Something clearly broken.
+
+What I got was more subtle — and harder to catch in production.
+
+---
+
+## The setup
+
+The grounding system prompt enforces three constraints:
+
+```python
+SYSTEM_PROMPT = """You are a research assistant.
+- Answer ONLY from the provided context — never from general knowledge
+- Always cite [Page X] after each specific claim
+- If the context does not contain enough information, say exactly:
+  'The document does not contain enough information to answer this.'"""
+```
+
+I replaced this with:
+
+```python
+SYSTEM_PROMPT = "You are a helpful assistant."
+```
+
+Then asked: **"What accuracy does MAML achieve on few-shot learning benchmarks?"**
+
+---
+
+## What I expected
+
+The LLM answering from training data. Specific benchmark numbers from papers it was trained on. Confident, wrong, no citations.
+
+---
+
+## What actually happened
+
+```
+The context does not provide a direct answer to the question of what
+accuracy MAML achieves on few-shot learning benchmarks. However, it
+mentions that adaptive optimization strategies can enhance convergence
+by 2-3 percentage points [Page 8] and that a 20-30% improvement in
+convergence rate is suggested [Page 8]. Additionally, it notes that the
+N-way K-shot evaluation technique is used to evaluate meta-learning
+systems, with 5-way 1-shot and 5-way 5-shot setups being commonly used
+[Page 2].
+```
+
+The model cited Page 8 and Page 2. It stayed partially grounded in the
+retrieved text. It did not invent numbers.
+
+But it also gave a vague, evasive answer that mixed related context
+the question didn't ask for. "Convergence rate" and "evaluation technique"
+are in the document — but the question was about benchmark accuracy, not
+those things. The answer sounds relevant without actually answering.
+
+---
+
+## Why this is harder to catch than hallucination
+
+With the grounding prompt active, the same question returns:
+
+```
+Based on the document, the paper does not report specific accuracy
+numbers for MAML on standard benchmarks. The proposed framework is
+expected to increase robustness by roughly 25% [Page 9] and achieve
+6-8 percentage point improvements in cross-domain scenarios [Page 9].
+```
+
+Specific, precise, grounded. The model names what it found and
+what it didn't find.
+
+Without the grounding prompt, the model does something different.
+It knows the question is about MAML benchmarks. It finds related
+chunks. It assembles an answer that sounds like it addresses the
+question — citing real page numbers from the document — but
+actually sidetracks into adjacent topics.
+
+A researcher reading the un-grounded answer might think they got
+a real response. They got noise that looks like signal.
+
+---
+
+## The two jobs the grounding prompt does
+
+This experiment revealed that the grounding prompt does not just
+prevent hallucination. It does two distinct things:
+
+**Job 1 — prevent fabrication:** Stop the LLM from answering from
+training data when the document doesn't contain the answer.
+
+**Job 2 — enforce precision:** Force the LLM to answer the specific
+question asked, not related questions it finds easier to answer from
+the retrieved context.
+
+Without the prompt, Job 1 was partially preserved — the model still
+leaned on retrieved text. Job 2 failed completely — the model answered
+the question it wanted to answer, not the question that was asked.
+
+---
+
+## The fix
+
+Precision requirements belong in the prompt explicitly:
+
+```python
+SYSTEM_PROMPT = """You are a research assistant.
+- Answer ONLY from the provided context — never from general knowledge
+- Answer the specific question asked — do not substitute related context
+- Always cite [Page X] after each specific claim
+- If the exact answer is not in the context, say exactly:
+  'The document does not contain enough information to answer this.'
+- Do not add context that wasn't asked for"""
+```
+
+The addition: **"Answer the specific question asked — do not substitute
+related context."** This targets Job 2 directly.
+
+---
+
+## The lesson
+
+Removing the grounding prompt from a RAG system does not turn it into
+a confident liar. It turns it into an evasive generalist. It finds
+something real in the retrieved text, builds an answer around that,
+and presents it as if it addressed your question.
+
+Hallucination is easy to catch. Plausible-but-imprecise is not.
+
+The grounding prompt is not just a safety mechanism. It is a
+precision contract between you and the LLM. Every clause earns its place.
+
+---
+
+*This is Break 1 from the RAG Research Assistant Layer 2 experiments.*
+*Full break documentation: [BREAKS.md](https://github.com/Nevil-Dhinoja/rag-research-assistant/blob/main/BREAKS.md)*
+*Project: [github.com/Nevil-Dhinoja/rag-research-assistant](https://github.com/Nevil-Dhinoja/rag-research-assistant)*
+
+---
 ## The AI Grid
 
 <div align="center">
@@ -344,7 +484,7 @@ This repo is part of a series of open-source AI tools built at zero cost.
 | [Data Analyst Agent](https://github.com/Nevil-Dhinoja/data-analyst-agent) | LangChain · Groq · Pandas · fpdf2 | Autonomous e-commerce analyst with PDF reports |
 | [ETL Pipeline](https://github.com/Nevil-Dhinoja/etl-pipeline) | PostgreSQL · Pandas · Groq · APScheduler | 7-stage production ETL with AI anomaly detection |
 | **RAG Research Assistant** | sentence-transformers · ChromaDB · Groq · gTTS | Upload PDFs — ask questions — get cited answers |
-| Coming — Multi-Source RAG | LlamaIndex · ChromaDB · DuckDuckGo | PDF + web + database queried simultaneously |
+| [Multi-Source RAG](https://github.com/Nevil-Dhinoja/multi-source-rag)| LlamaIndex · ChromaDB · DuckDuckGo | PDF + web + database queried simultaneously |
 
 </div>
 
