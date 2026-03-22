@@ -324,7 +324,7 @@ The user prompt passes the retrieved chunks as context then asks the question. T
 - [x] gTTS voice output
 - [x] Multi-document support with source filtering
 - [x] Streamlit UI with source panel
-- [ ] Hybrid search — BM25 + vector combined
+- [x] Hybrid search — BM25 + vector with RRF fusion
 - [ ] Reranker — cross-encoder for better precision
 - [ ] Highlight source passage in PDF viewer
 - [ ] Support for DOCX, TXT, Markdown
